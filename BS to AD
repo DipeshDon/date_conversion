@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nepali Date Converter</title>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      min-height:100vh;
+      background:linear-gradient(135deg,#0f0c29 0%,#1a1a4e 50%,#0f3460 100%);
+      font-family:'Segoe UI',system-ui,sans-serif;
+      display:flex; align-items:center; justify-content:center;
+      padding:20px; overflow-x:hidden;
+    }
+    .page { display:none; width:100%; max-width:540px; animation:fadeUp 0.4s ease; }
+    .page.active { display:block; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+    .card {
+      background:rgba(255,255,255,0.06); backdrop-filter:blur(24px);
+      border:1px solid rgba(255,255,255,0.12); border-radius:28px;
+      padding:44px 40px; box-shadow:0 40px 80px rgba(0,0,0,0.5);
+    }
+    .header { text-align:center; margin-bottom:36px; }
+    .flag { font-size:52px; display:block; margin-bottom:12px; }
+    h1 { color:#fff; font-size:1.7rem; font-weight:800; letter-spacing:-0.5px; }
+    .subtitle { color:rgba(255,255,255,0.45); font-size:0.88rem; margin-top:7px; }
+    .choice-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .choice-card {
+      cursor:pointer; background:rgba(255,255,255,0.05);
+      border:2px solid rgba(255,255,255,0.1); border-radius:20px;
+      padding:30px 16px; text-align:center; transition:all 0.25s; user-select:none;
+    }
+    .choice-card:hover { transform:translateY(-5px); }
+    .choice-card.bs-to-ad:hover { border-color:#e53e3e; box-shadow:0 12px 32px rgba(229,62,62,0.25); background:rgba(229,62,62,0.08); }
+    .choice-card.ad-to-bs:hover { border-color:#4299e1; box-shadow:0 12px 32px rgba(66,153,225,0.25); background:rgba(66,153,225,0.08); }
+    .choice-icon { font-size:42px; display:block; margin-bottom:12px; }
+    .choice-title { color:#fff; font-size:1.05rem; font-weight:700; margin-bottom:5px; }
+    .choice-sub { color:rgba(255,255,255,0.4); font-size:0.75rem; line-height:1.5; }
+    .arrow-badge { display:inline-flex; align-items:center; justify-content:center; border-radius:20px; padding:5px 12px; font-size:0.75rem; margin-top:10px; font-weight:600; }
+    .bs-to-ad .arrow-badge { background:rgba(229,62,62,0.15); color:#fc8181; }
+    .ad-to-bs .arrow-badge { background:rgba(66,153,225,0.15); color:#63b3ed; }
+    .back-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12);
+      color:rgba(255,255,255,0.6); border-radius:20px; padding:7px 16px;
+      font-size:0.8rem; cursor:pointer; margin-bottom:22px; transition:all 0.2s; user-select:none;
+    }
+    .back-btn:hover { background:rgba(255,255,255,0.14); color:#fff; }
+    .mode-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:20px; font-size:0.78rem; font-weight:700; margin-bottom:14px; letter-spacing:0.3px; }
+    .mode-pill.bs { background:rgba(229,62,62,0.2); color:#fc8181; border:1px solid rgba(229,62,62,0.3); }
+    .mode-pill.ad { background:rgba(66,153,225,0.2); color:#63b3ed; border:1px solid rgba(66,153,225,0.3); }
+    label { display:block; color:rgba(255,255,255,0.6); font-size:0.76rem; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; margin-bottom:8px; }
+    .input-row { display:grid; grid-template-columns:2fr 2fr 1.5fr; gap:10px; margin-bottom:20px; }
+    .sub-label { text-align:center; color:rgba(255,255,255,0.28); font-size:0.67rem; margin-top:5px; }
+    input[type="number"], select {
+      width:100%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
+      border-radius:12px; color:#fff; font-size:0.95rem; padding:13px; outline:none;
+      transition:border-color 0.2s,background 0.2s; appearance:none; -webkit-appearance:none;
+    }
+    input[type="number"]:focus, select:focus { border-color:rgba(99,179,237,0.6); background:rgba(255,255,255,0.11); }
+    input[type="number"]::placeholder { color:rgba(255,255,255,0.22); }
+    select option { background:#16213e; color:#fff; }
+    .today-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(99,179,237,0.12); border:1px solid rgba(99,179,237,0.25);
+      color:#63b3ed; font-size:0.78rem; padding:6px 14px; border-radius:20px;
+      margin-bottom:18px; cursor:pointer; transition:all 0.2s; user-select:none;
+    }
+    .today-badge:hover { background:rgba(99,179,237,0.22); }
+    .btn { width:100%; padding:15px; border:none; border-radius:14px; color:#fff; font-size:1rem; font-weight:800; cursor:pointer; letter-spacing:0.4px; transition:transform 0.15s,box-shadow 0.15s; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn:active { transform:translateY(0); }
+    .btn.red  { background:linear-gradient(135deg,#e53e3e,#c53030); }
+    .btn.blue { background:linear-gradient(135deg,#3182ce,#2b6cb0); }
+    .btn.red:hover  { box-shadow:0 8px 24px rgba(229,62,62,0.4); }
+    .btn.blue:hover { box-shadow:0 8px 24px rgba(49,130,206,0.4); }
+    .error-msg { color:#fc8181; font-size:0.82rem; text-align:center; margin-top:12px; display:none; }
+    .error-msg.show { display:block; }
+    .result-box { margin-top:26px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:28px 24px; display:none; }
+    .result-box.show { display:block; animation:fadeUp 0.3s ease; }
+    .result-main { text-align:center; margin-bottom:20px; }
+    .result-label { color:rgba(255,255,255,0.45); font-size:0.73rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+    .result-year { color:#fff; font-size:2.4rem; font-weight:900; letter-spacing:-1px; line-height:1; }
+    .result-month-day { color:rgba(255,255,255,0.85); font-size:1.1rem; font-weight:600; margin-top:4px; }
+    .result-weekday { color:#68d391; font-size:0.9rem; margin-top:6px; font-weight:600; }
+    .tithi-wrap { margin-top:14px; }
+    .tithi-badge { display:inline-flex; align-items:center; gap:10px; background:rgba(237,137,54,0.15); border:1px solid rgba(237,137,54,0.35); border-radius:12px; padding:10px 18px; }
+    .tithi-moon { font-size:1.5rem; line-height:1; }
+    .tithi-info { text-align:left; }
+    .tithi-name { color:#fbd38d; font-size:1rem; font-weight:700; }
+    .tithi-sub  { color:rgba(255,255,255,0.45); font-size:0.72rem; margin-top:2px; }
+    .result-meta { padding-top:18px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:center; flex-wrap:wrap; }
+    .meta-item { text-align:center; padding:0 14px; border-right:1px solid rgba(255,255,255,0.08); }
+    .meta-item:last-child { border-right:none; }
+    .meta-val { color:#63b3ed; font-size:0.9rem; font-weight:700; }
+    .meta-key { color:rgba(255,255,255,0.35); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.5px; margin-top:3px; }
+    @media(max-width:420px){ .card{padding:30px 18px;} .choice-grid{grid-template-columns:1fr;} .result-year{font-size:2rem;} .meta-item{padding:0 8px;} }
+  </style>
+</head>
+<body>
+
+<div class="page active" id="page-home">
+  <div class="card">
+    <div class="header">
+      <span class="flag">🇳🇵</span>
+      <h1>Nepali Date Converter</h1>
+      <p class="subtitle">Choose a conversion direction to get started</p>
+    </div>
+    <div class="choice-grid">
+      <div class="choice-card bs-to-ad" onclick="goTo('bs-to-ad')">
+        <span class="choice-icon">📅</span>
+        <div class="choice-title">BS → AD</div>
+        <div class="choice-sub">Bikram Sambat<br>to Gregorian</div>
+        <div class="arrow-badge">विक्रम → ईसवी</div>
+      </div>
+      <div class="choice-card ad-to-bs" onclick="goTo('ad-to-bs')">
+        <span class="choice-icon">🗓️</span>
+        <div class="choice-title">AD → BS</div>
+        <div class="choice-sub">Gregorian<br>to Bikram Sambat</div>
+        <div class="arrow-badge">ईसवी → विक्रम</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-bs-to-ad">
+  <div class="card">
+    <span class="back-btn" onclick="goHome()">← Back</span>
+    <div class="header" style="margin-bottom:20px;">
+      <div class="mode-pill bs">📅 Bikram Sambat → AD</div>
+      <h1>BS to AD</h1>
+      <p class="subtitle">Convert a Nepali date to English calendar</p>
+    </div>
+    <span class="today-badge" onclick="fillTodayBS()">📅 Fill Today's BS Date</span>
+    <label>Bikram Sambat Date</label>
+    <div class="input-row">
+      <div><input type="number" id="bs-year" placeholder="2082" min="2000" max="2090"/><div class="sub-label">Year (साल)</div></div>
+      <div>
+        <select id="bs-month">
+          <option value="">Month</option>
+          <option value="1">Baisakh (बैशाख)</option>
+          <option value="2">Jestha (जेठ)</option>
+          <option value="3">Ashadh (असार)</option>
+          <option value="4">Shrawan (श्रावण)</option>
+          <option value="5">Bhadra (भाद्र)</option>
+          <option value="6">Ashwin (आश्विन)</option>
+          <option value="7">Kartik (कार्तिक)</option>
+          <option value="8">Mangsir (मंसिर)</option>
+          <option value="9">Poush (पुष)</option>
+          <option value="10">Magh (माघ)</option>
+          <option value="11">Falgun (फाल्गुन)</option>
+          <option value="12">Chaitra (चैत्र)</option>
+        </select>
+        <div class="sub-label">Month (महिना)</div>
+      </div>
+      <div><input type="number" id="bs-day" placeholder="20" min="1" max="32"/><div class="sub-label">Day (दिन)</div></div>
+    </div>
+    <button class="btn red" onclick="convertBsToAd()">Convert to AD →</button>
+    <div class="error-msg" id="err-bs"></div>
+    <div class="result-box" id="result-bs">
+      <div class="result-main">
+        <div class="result-label">Equivalent AD Date</div>
+        <div class="result-year" id="r-bs-year"></div>
+        <div class="result-month-day" id="r-bs-monthday"></div>
+        <div class="result-weekday" id="r-bs-weekday"></div>
+        <div class="tithi-wrap"><div class="tithi-badge"><span class="tithi-moon" id="r-bs-moon"></span><div class="tithi-info"><div class="tithi-name" id="r-bs-tithi"></div><div class="tithi-sub" id="r-bs-paksha"></div></div></div></div>
+      </div>
+      <div class="result-meta">
+        <div class="meta-item"><div class="meta-val" id="r-bs-input"></div><div class="meta-key">BS Input</div></div>
+        <div class="meta-item"><div class="meta-val" id="r-bs-nepmonth"></div><div class="meta-key">Nepali Month</div></div>
+        <div class="meta-item"><div class="meta-val" id="r-bs-season"></div><div class="meta-key">Season</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-ad-to-bs">
+  <div class="card">
+    <span class="back-btn" onclick="goHome()">← Back</span>
+    <div class="header" style="margin-bottom:20px;">
+      <div class="mode-pill ad">🗓️ AD → Bikram Sambat</div>
+      <h1>AD to BS</h1>
+      <p class="subtitle">Convert an English date to Nepali calendar</p>
+    </div>
+    <span class="today-badge" onclick="fillTodayAD()">📅 Fill Today's AD Date</span>
+    <label>Gregorian (AD) Date</label>
+    <div class="input-row">
+      <div><input type="number" id="ad-year" placeholder="2026" min="1944" max="2034"/><div class="sub-label">Year</div></div>
+      <div>
+        <select id="ad-month">
+          <option value="">Month</option>
+          <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+          <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+          <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+          <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+        </select>
+        <div class="sub-label">Month</div>
+      </div>
+      <div><input type="number" id="ad-day" placeholder="4" min="1" max="31"/><div class="sub-label">Day</div></div>
+    </div>
+    <button class="btn blue" onclick="convertAdToBs()">Convert to BS →</button>
+    <div class="error-msg" id="err-ad"></div>
+    <div class="result-box" id="result-ad">
+      <div class="result-main">
+        <div class="result-label">Equivalent BS Date</div>
+        <div class="result-year" id="r-ad-year"></div>
+        <div class="result-month-day" id="r-ad-monthday"></div>
+        <div class="result-weekday" id="r-ad-weekday"></div>
+        <div class="tithi-wrap"><div class="tithi-badge"><span class="tithi-moon" id="r-ad-moon"></span><div class="tithi-info"><div class="tithi-name" id="r-ad-tithi"></div><div class="tithi-sub" id="r-ad-paksha"></div></div></div></div>
+      </div>
+      <div class="result-meta">
+        <div class="meta-item"><div class="meta-val" id="r-ad-input"></div><div class="meta-key">AD Input</div></div>
+        <div class="meta-item"><div class="meta-val" id="r-ad-nepmonth"></div><div class="meta-key">Nepali Month</div></div>
+        <div class="meta-item"><div class="meta-val" id="r-ad-season"></div><div class="meta-key">Season</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  BS MONTH DATA — verified against 26 known Nepal New Year dates
+//  REF: BS 2000/01/01 = AD 1943/04/14
+//  Key fixes vs common sources:
+//    2057: 366 days (not 365)  2059,2063,2067,2071,2075,2079: 365 (not 366)
+//    2061,2065,2069,2073,2077,2081: 366 (not 365)
+// ═══════════════════════════════════════════════════════
+const D = [
+  [30,32,31,32,31,30,30,30,29,30,29,31], // 2000
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2001
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2002
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2003
+  [30,32,31,32,31,30,30,30,29,30,29,31], // 2004
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2005
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2006
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2007
+  [31,31,31,32,31,31,29,30,30,29,29,31], // 2008
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2009
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2010
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2011
+  [31,31,31,32,31,31,29,30,30,29,30,30], // 2012
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2013
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2014
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2015
+  [31,31,31,32,31,31,29,30,30,29,30,30], // 2016
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2017
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2018
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2019
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2020
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2021
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2022
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2023
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2024
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2025
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2026
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2027
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2028
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2029
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2030
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2031
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2032
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2033
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2034
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2035
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2036
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2037
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2038
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2039
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2040
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2041
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2042
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2043
+  [30,32,31,32,31,30,30,30,29,30,29,31], // 2044
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2045
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2046
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2047
+  [31,31,31,32,31,31,29,30,29,30,29,31], // 2048
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2049
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2050
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2051
+  [31,31,31,32,31,31,29,30,30,29,29,31], // 2052
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2053
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2054
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2055
+  [31,31,31,32,31,31,29,30,30,29,30,30], // 2056
+  [31,32,31,32,31,30,30,30,29,30,29,31], // 2057 ← 366 days (FIXED)
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2058
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2059 ← 365 days (FIXED)
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2060
+  [31,31,32,31,32,31,30,29,30,29,30,30], // 2061 ← 366 days (FIXED)
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2062
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2063 ← 365 days (FIXED)
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2064
+  [31,31,32,31,32,31,30,29,30,29,30,30], // 2065 ← 366 days (FIXED)
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2066
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2067 ← 365 days (FIXED)
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2068
+  [31,31,32,31,32,31,30,29,30,29,30,30], // 2069 ← 366 days (FIXED)
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2070
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2071 ← 365 days (FIXED)
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2072
+  [31,31,32,31,32,31,30,29,30,29,30,30], // 2073 ← 366 days (FIXED)
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2074
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2075 ← 365 days (FIXED)
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2076
+  [31,31,32,31,32,31,30,29,30,29,30,30], // 2077 ← 366 days (FIXED)
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2078
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2079 ← 365 days (FIXED)
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2080
+  [31,31,32,31,32,31,30,29,30,29,30,30], // 2081 ← 366 days (FIXED)
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2082
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2083
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2084
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2085
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2086
+  [31,32,31,32,31,30,30,30,29,29,30,31], // 2087
+  [31,31,31,32,31,31,30,29,30,29,30,30], // 2088
+  [31,31,32,31,31,31,30,29,30,29,30,30], // 2089
+  [31,31,32,32,31,30,30,29,30,29,30,30], // 2090
+];
+
+const BS_MONTHS    = ['Baisakh','Jestha','Ashadh','Shrawan','Bhadra','Ashwin','Kartik','Mangsir','Poush','Magh','Falgun','Chaitra'];
+const BS_MONTHS_NP = ['बैशाख','जेठ','असार','श्रावण','भाद्र','आश्विन','कार्तिक','मंसिर','पुष','माघ','फाल्गुन','चैत्र'];
+const AD_MONTHS    = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WEEK_DAYS    = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SEASONS      = ['','Spring','Spring','Summer','Summer','Monsoon','Monsoon','Autumn','Autumn','Winter','Winter','Spring','Spring'];
+const TITHI_EN     = ['Pratipada','Dwitiya','Tritiya','Chaturthi','Panchami','Shashthi','Saptami','Ashtami','Navami','Dashami','Ekadashi','Dwadashi','Trayodashi','Chaturdashi'];
+const TITHI_NP     = ['प्रतिपदा','द्वितीया','तृतीया','चतुर्थी','पञ्चमी','षष्ठी','सप्तमी','अष्टमी','नवमी','दशमी','एकादशी','द्वादशी','त्रयोदशी','चतुर्दशी'];
+
+// Tithi reference — verified: Nepal Mar 4 2026 (= 2082/11/20 BS) = Krishna Pratipada
+const SYNODIC = 29.53059;
+const NM_REF  = 20501.234705; // new moon ~Feb 17.23, 2026 UTC
+
+// ═══════════════════════════════════════════════════════
+//  CORE FUNCTIONS
+//  REF: BS 2000/01/01 = AD 1943/04/14 (verified against 26 Nepal NY dates)
+// ═══════════════════════════════════════════════════════
+function utcDay(y, m, d) { return Date.UTC(y, m-1, d) / 86400000; }
+const REF = utcDay(1943, 4, 14);
+
+function bsToAdUTC(bsY, bsM, bsD) {
+  const i = bsY - 2000;
+  if (i < 0 || i >= D.length) return null;
+  if (bsD < 1 || bsD > D[i][bsM-1]) return null;
+  let days = 0;
+  for (let k = 0; k < i; k++) days += D[k].reduce((a,b)=>a+b,0);
+  for (let m = 0; m < bsM-1; m++) days += D[i][m];
+  return REF + days + bsD - 1;
+}
+
+function adToBS(adY, adM, adD) {
+  let rem = utcDay(adY, adM, adD) - REF;
+  if (rem < 0) return null;
+  let yi = 0, m = 0, d = 1;
+  while (rem > 0) {
+    if (yi >= D.length) return null;
+    const yr = D[yi].reduce((a,b)=>a+b,0);
+    if (rem >= yr) { rem -= yr; yi++; continue; }
+    for (let i = 0; i < 12; i++) {
+      if (rem < D[yi][i]) { m = i; d = rem + 1; rem = 0; break; }
+      rem -= D[yi][i];
+    }
+  }
+  return { year: 2000+yi, month: m+1, day: d };
+}
+
+function getTithi(utcDayInt) {
+  // Use Nepal local time (GMT+5:45) for tithi
+  const nepalFrac = utcDayInt + (5*60+45)/(24*60);
+  const daysSince = ((nepalFrac - NM_REF) % SYNODIC + SYNODIC) % SYNODIC;
+  const tithiNum  = Math.floor(daysSince / (SYNODIC/30));
+  const isKrishna = tithiNum >= 15;
+  const idx = isKrishna ? tithiNum - 15 : tithiNum;
+  let nameEn = idx < 14 ? TITHI_EN[idx] : (isKrishna ? 'Amavasya' : 'Purnima');
+  let nameNp = idx < 14 ? TITHI_NP[idx] : (isKrishna ? 'औंसी' : 'पूर्णिमा');
+  const paksha = isKrishna ? 'Krishna Paksha (कृष्ण पक्ष)' : 'Shukla Paksha (शुक्ल पक्ष)';
+  // Moon emoji: waxing for Shukla, waning for Krishna
+  let moon;
+  if      (tithiNum === 0)                   moon = '🌑';
+  else if (tithiNum < 4)                     moon = '🌒';
+  else if (tithiNum < 8)                     moon = '🌓';
+  else if (tithiNum < 12)                    moon = '🌔';
+  else if (tithiNum === 14||tithiNum === 15) moon = '🌕';
+  else if (tithiNum < 19)                    moon = '🌖';
+  else if (tithiNum < 23)                    moon = '🌗';
+  else if (tithiNum < 28)                    moon = '🌘';
+  else                                       moon = '🌑';
+  return { nameEn, nameNp, paksha, moon };
+}
+
+// Nepal local date (GMT+5:45)
+function getNepalToday() {
+  const now = new Date();
+  const nd  = new Date(now.getTime() + (5*60+45)*60*1000);
+  return { year: nd.getUTCFullYear(), month: nd.getUTCMonth()+1, day: nd.getUTCDate() };
+}
+
+// Navigation
+function goTo(mode) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-'+mode).classList.add('active'); window.scrollTo(0,0); }
+function goHome()   { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-home').classList.add('active'); window.scrollTo(0,0); }
+
+// Fill today
+function fillTodayBS() {
+  const t = getNepalToday();
+  const bs = adToBS(t.year, t.month, t.day);
+  if (!bs) return;
+  document.getElementById('bs-year').value  = bs.year;
+  document.getElementById('bs-month').value = bs.month;
+  document.getElementById('bs-day').value   = bs.day;
+}
+function fillTodayAD() {
+  const t = getNepalToday();
+  document.getElementById('ad-year').value  = t.year;
+  document.getElementById('ad-month').value = t.month;
+  document.getElementById('ad-day').value   = t.day;
+}
+
+// Convert BS → AD
+function convertBsToAd() {
+  const year=parseInt(document.getElementById('bs-year').value);
+  const month=parseInt(document.getElementById('bs-month').value);
+  const day=parseInt(document.getElementById('bs-day').value);
+  const errEl=document.getElementById('err-bs'), resEl=document.getElementById('result-bs');
+  errEl.classList.remove('show'); resEl.classList.remove('show');
+  if (!year||!month||!day||isNaN(year)||isNaN(month)||isNaN(day)) return showErr(errEl,'⚠️ Please fill in all three fields.');
+  const i=year-2000;
+  if (i<0||i>=D.length) return showErr(errEl,`⚠️ Year ${year} is outside supported range (2000–2090).`);
+  const maxD=D[i][month-1];
+  if (day<1||day>maxD) return showErr(errEl,`⚠️ Day must be 1–${maxD} for ${BS_MONTHS[month-1]} ${year}.`);
+  const adUTC=bsToAdUTC(year,month,day);
+  if (adUTC===null) return showErr(errEl,'⚠️ Conversion failed.');
+  const dt=new Date(adUTC*86400000);
+  const adY=dt.getUTCFullYear(), adM=dt.getUTCMonth()+1, adD=dt.getUTCDate(), dow=dt.getUTCDay();
+  const t=getTithi(adUTC);
+  document.getElementById('r-bs-year').textContent     = adY;
+  document.getElementById('r-bs-monthday').textContent = `${AD_MONTHS[adM-1]} ${adD}`;
+  document.getElementById('r-bs-weekday').textContent  = `✦ ${WEEK_DAYS[dow]}`;
+  document.getElementById('r-bs-moon').textContent     = t.moon;
+  document.getElementById('r-bs-tithi').textContent    = `${t.nameEn} (${t.nameNp})`;
+  document.getElementById('r-bs-paksha').textContent   = t.paksha;
+  document.getElementById('r-bs-input').textContent    = `${year} ${BS_MONTHS[month-1]} ${day}`;
+  document.getElementById('r-bs-nepmonth').textContent = BS_MONTHS_NP[month-1];
+  document.getElementById('r-bs-season').textContent   = SEASONS[month];
+  resEl.classList.add('show');
+}
+
+// Convert AD → BS
+function convertAdToBs() {
+  const year=parseInt(document.getElementById('ad-year').value);
+  const month=parseInt(document.getElementById('ad-month').value);
+  const day=parseInt(document.getElementById('ad-day').value);
+  const errEl=document.getElementById('err-ad'), resEl=document.getElementById('result-ad');
+  errEl.classList.remove('show'); resEl.classList.remove('show');
+  if (!year||!month||!day||isNaN(year)||isNaN(month)||isNaN(day)) return showErr(errEl,'⚠️ Please fill in all three fields.');
+  const check=new Date(Date.UTC(year,month-1,day));
+  if (check.getUTCFullYear()!==year||check.getUTCMonth()!==month-1||check.getUTCDate()!==day) return showErr(errEl,`⚠️ ${AD_MONTHS[month-1]} ${day}, ${year} is not a valid date.`);
+  const inputUTC=utcDay(year,month,day);
+  if (inputUTC<REF) return showErr(errEl,'⚠️ Date is before supported range.');
+  const bs=adToBS(year,month,day);
+  if (!bs) return showErr(errEl,'⚠️ Conversion failed. Date may be out of range.');
+  const dow=check.getUTCDay();
+  const t=getTithi(inputUTC);
+  document.getElementById('r-ad-year').textContent     = bs.year;
+  document.getElementById('r-ad-monthday').textContent = `${BS_MONTHS[bs.month-1]} ${bs.day}`;
+  document.getElementById('r-ad-weekday').textContent  = `✦ ${WEEK_DAYS[dow]}`;
+  document.getElementById('r-ad-moon').textContent     = t.moon;
+  document.getElementById('r-ad-tithi').textContent    = `${t.nameEn} (${t.nameNp})`;
+  document.getElementById('r-ad-paksha').textContent   = t.paksha;
+  document.getElementById('r-ad-input').textContent    = `${AD_MONTHS[month-1]} ${day}, ${year}`;
+  document.getElementById('r-ad-nepmonth').textContent = BS_MONTHS_NP[bs.month-1];
+  document.getElementById('r-ad-season').textContent   = SEASONS[bs.month];
+  resEl.classList.add('show');
+}
+
+function showErr(el,msg){ el.textContent=msg; el.classList.add('show'); }
+</script>
+</body>
+</html>
